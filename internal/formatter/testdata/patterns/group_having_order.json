@@ -1,0 +1,109 @@
+{
+  "pattern": "group_having_order",
+  "classes": [
+    {"id": "group_by", "desc": "GROUP BY lists, kept on one line"},
+    {"id": "having", "desc": "HAVING conditions, AND / OR on new lines like WHERE"},
+    {"id": "order_by_limit", "desc": "ORDER BY with ASC / DESC, LIMIT and OFFSET"}
+  ],
+  "cases": [
+    {
+      "name": "single column",
+      "class": "group_by",
+      "sql": "select country, count(*) from users group by country",
+      "format_want": [
+        "SELECT country,",
+        "       count(*)",
+        "FROM   users",
+        "GROUP BY country"
+      ]
+    },
+    {
+      "name": "multiple columns with where",
+      "class": "group_by",
+      "sql": "select country, city, count(*) as n from users where active = 1 group by country, city",
+      "format_want": [
+        "SELECT country,",
+        "       city,",
+        "       count(*) AS n",
+        "FROM   users",
+        "WHERE  active = 1",
+        "GROUP BY country, city"
+      ]
+    },
+    {
+      "name": "positional columns",
+      "class": "group_by",
+      "sql": "select country, count(*) from users group   by 1",
+      "format_want": [
+        "SELECT country,",
+        "       count(*)",
+        "FROM   users",
+        "GROUP BY 1"
+      ]
+    },
+    {
+      "name": "single condition",
+      "class": "having",
+      "sql": "select country, count(*) as n from users group by country having count(*) > 10",
+      "format_want": [
+        "SELECT country,",
+        "       count(*) AS n",
+        "FROM   users",
+        "GROUP BY country",
+        "HAVING count(*) > 10"
+      ]
+    },
+    {
+      "name": "HAVING with AND",
+      "class": "having",
+      "sql": "select user_id, sum(amount) from orders group by user_id having count(*) > 10 and sum(amount) < 1000",
+      "format_want": [
+        "SELECT user_id,",
+        "       sum(amount)",
+        "FROM   orders",
+        "GROUP BY user_id",
+        "HAVING count(*) > 10",
+        "       AND sum(amount) < 1000"
+      ]
+    },
+    {
+      "name": "order by desc",
+      "class": "order_by_limit",
+      "sql": "select * from orders order by created_at desc",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "ORDER BY created_at DESC"
+      ]
+    },
+    {
+      "name": "order by several columns with limit and offset",
+      "class": "order_by_limit",
+      "sql": "select id, amount from orders order by amount desc, id asc limit 10 offset 20",
+      "format_want": [
+        "SELECT id,",
+        "       amount",
+        "FROM   orders",
+        "ORDER BY amount DESC, id ASC",
+        "LIMIT  10",
+        "OFFSET 20"
+      ]
+    },
+    {
+      "name": "all clauses",
+      "class": "order_by_limit",
+      "sql": "select country, count(*) as n from users where active = 1 and age >= 18 group by country having count(*) > 5 order by n desc limit 3",
+      "format_want": [
+        "SELECT country,",
+        "       count(*) AS n",
+        "FROM   users",
+        "WHERE  active = 1",
+        "       AND age >= 18",
+        "GROUP BY country",
+        "HAVING count(*) > 5",
+        "ORDER BY n DESC",
+        "LIMIT  3"
+      ]
+    }
+  ]
+}

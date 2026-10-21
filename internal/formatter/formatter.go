@@ -68,12 +68,9 @@ func clauseOf(t Token) *clause {
 }
 
 // Format tokenizes the SQL and lays it out one clause per line, as
-// the clauses table says:
-//   - each clause keyword starts a line, padded to its width
-//   - in a clause with commas, each item after a comma goes on its own line
-//   - in a clause with conditions, each AND or OR goes on its own line
-//   - a subquery lines up with the column after its "("
-//   - JOIN, ON and USING start their own lines under FROM
+// the clauses table says. See STYLE.md at the repo root for the
+// layout rules. It returns an error when the SQL does not tokenize
+// (see Tokenize) or its parentheses are unbalanced.
 func Format(sql string) (string, error) {
 	tokens, err := Tokenize(sql)
 	if err != nil {

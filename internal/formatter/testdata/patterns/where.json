@@ -1,0 +1,375 @@
+{
+  "pattern": "where",
+  "classes": [
+    {"id": "where_and", "desc": "WHERE with top-level AND / OR, one condition per line"},
+    {"id": "where_complex_and_or", "desc": "WHERE mixing AND / OR with parenthesised groups that stay on one line"},
+    {"id": "where_not_group", "desc": "WHERE NOT applied to a parenthesised group"},
+    {"id": "where_between", "desc": "WHERE .. BETWEEN .. AND .., the inner AND stays on the line"},
+    {"id": "where_in", "desc": "WHERE .. IN (list) and NOT IN"},
+    {"id": "where_literals", "desc": "WHERE with string and number literals"},
+    {"id": "where_functions", "desc": "WHERE with function calls in conditions"},
+    {"id": "where_arithmetic", "desc": "WHERE with arithmetic operators"},
+    {"id": "tokens_literals", "desc": "tokenizer: numbers, strings, escaped quotes, negative numbers"},
+    {"id": "tokens_operators", "desc": "tokenizer: comparison and arithmetic operators, * as Star vs Operator"}
+  ],
+  "cases": [
+    {
+      "name": "two conditions with AND, column name is not a keyword",
+      "class": "where_and",
+      "sql": "SELECT * FROM table_name WHERE id = 1 and name = 'ABC'",
+      "format_want": [
+        "SELECT *",
+        "FROM   table_name",
+        "WHERE  id = 1",
+        "       AND name = 'ABC'"
+      ]
+    },
+    {
+      "name": "three conditions with AND",
+      "class": "where_and",
+      "sql": "select * from orders where status='paid' and amount>100 and created_at >= '2026-01-01'",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "WHERE  status = 'paid'",
+        "       AND amount > 100",
+        "       AND created_at >= '2026-01-01'"
+      ]
+    },
+    {
+      "name": "OR",
+      "class": "where_and",
+      "sql": "select * from t where a = 1 or b = 2",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  a = 1",
+        "       OR b = 2"
+      ]
+    },
+    {
+      "name": "NOT with AND",
+      "class": "where_and",
+      "sql": "select * from users where not is_deleted and active = 1",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  NOT is_deleted",
+        "       AND active = 1"
+      ]
+    },
+    {
+      "name": "group then AND",
+      "class": "where_complex_and_or",
+      "sql": "select * from t where (a = 1 and b = 2 or c = 3) and d = 4",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  (a = 1 AND b = 2 OR c = 3)",
+        "       AND d = 4"
+      ]
+    },
+    {
+      "name": "nested groups",
+      "class": "where_complex_and_or",
+      "sql": "select * from t where ((a = 1 and b = 2) or c = 3) and d = 4",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  ((a = 1 AND b = 2) OR c = 3)",
+        "       AND d = 4"
+      ]
+    },
+    {
+      "name": "AND then group",
+      "class": "where_complex_and_or",
+      "sql": "select * from t where a = 1 and (b = 2 or c = 3)",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  a = 1",
+        "       AND (b = 2 OR c = 3)"
+      ]
+    },
+    {
+      "name": "two groups and OR",
+      "class": "where_complex_and_or",
+      "sql": "select * from t where ( a = 1 or b = 2 ) and ( c = 3 or d = 4 ) or e = 5",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  (a = 1 OR b = 2)",
+        "       AND (c = 3 OR d = 4)",
+        "       OR e = 5"
+      ]
+    },
+    {
+      "name": "three levels of nesting",
+      "class": "where_complex_and_or",
+      "sql": "select * from t where (((a = 1 or b = 2) and c = 3) or d = 4) and e = 5",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  (((a = 1 OR b = 2) AND c = 3) OR d = 4)",
+        "       AND e = 5"
+      ]
+    },
+    {
+      "name": "between numbers",
+      "class": "where_between",
+      "sql": "select * from orders where amount between 10 and 20",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "WHERE  amount BETWEEN 10 AND 20"
+      ]
+    },
+    {
+      "name": "between dates then AND",
+      "class": "where_between",
+      "sql": "select * from orders where created_at between '2026-01-01' and '2026-12-31' and status = 'paid'",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "WHERE  created_at BETWEEN '2026-01-01' AND '2026-12-31'",
+        "       AND status = 'paid'"
+      ]
+    },
+    {
+      "name": "not between",
+      "class": "where_between",
+      "sql": "select * from orders where amount not between 10 and 20",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "WHERE  amount NOT BETWEEN 10 AND 20"
+      ]
+    },
+    {
+      "name": "not in strings then AND",
+      "class": "where_in",
+      "sql": "select * from users where country not in ( 'US', 'CA' ) and active = 1",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  country NOT IN ('US', 'CA')",
+        "       AND active = 1"
+      ]
+    },
+    {
+      "name": "long list stays on one line",
+      "class": "where_in",
+      "sql": "select * from users where id in (101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115)",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  id IN (101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115)"
+      ]
+    },
+    {
+      "name": "not group",
+      "class": "where_not_group",
+      "sql": "select * from t where not (a = 1 or b = 2)",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  NOT (a = 1 OR b = 2)"
+      ]
+    },
+    {
+      "name": "AND not nested group",
+      "class": "where_not_group",
+      "sql": "select * from t where a = 1 and not ((b = 2 and c = 3) or d = 4)",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "WHERE  a = 1",
+        "       AND NOT ((b = 2 AND c = 3) OR d = 4)"
+      ]
+    },
+    {
+      "name": "function on column",
+      "class": "where_functions",
+      "sql": "select * from users where lower(email) = 'a@example.com'",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  lower(email) = 'a@example.com'"
+      ]
+    },
+    {
+      "name": "nested functions with AND",
+      "class": "where_functions",
+      "sql": "select * from users where length( trim(last_name) ) > 0 and coalesce(age,0) >= 18",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  length(trim(last_name)) > 0",
+        "       AND coalesce(age, 0) >= 18"
+      ]
+    },
+    {
+      "name": "star after a value is multiply",
+      "class": "where_arithmetic",
+      "sql": "select * from order_items where price*quantity > 100",
+      "format_want": [
+        "SELECT *",
+        "FROM   order_items",
+        "WHERE  price * quantity > 100"
+      ]
+    },
+    {
+      "name": "divide, add and modulo",
+      "class": "where_arithmetic",
+      "sql": "select * from orders where amount/2+10 >= total and id%2 = 0",
+      "format_want": [
+        "SELECT *",
+        "FROM   orders",
+        "WHERE  amount / 2 + 10 >= total",
+        "       AND id % 2 = 0"
+      ]
+    },
+    {
+      "name": "unary sign after multiply",
+      "class": "where_arithmetic",
+      "sql": "select a * -1 from t where b*+2 > 0",
+      "format_want": [
+        "SELECT a * -1",
+        "FROM   t",
+        "WHERE  b * +2 > 0"
+      ]
+    },
+    {
+      "name": "unary minus and subtraction",
+      "class": "where_literals",
+      "sql": "select * from accounts where balance > -5 and balance - 5 < 100",
+      "format_want": [
+        "SELECT *",
+        "FROM   accounts",
+        "WHERE  balance > -5",
+        "       AND balance - 5 < 100"
+      ]
+    },
+    {
+      "name": "integer and decimal",
+      "class": "tokens_literals",
+      "sql": "1 42 3.14",
+      "tokens_want": [
+        ["Number", "1"],
+        ["Number", "42"],
+        ["Number", "3.14"]
+      ]
+    },
+    {
+      "name": "negative number is an operator and a number",
+      "class": "tokens_literals",
+      "sql": "> -5",
+      "tokens_want": [
+        ["Operator", ">"],
+        ["Operator", "-"],
+        ["Number", "5"]
+      ]
+    },
+    {
+      "name": "string",
+      "class": "tokens_literals",
+      "sql": "'paid'",
+      "tokens_want": [
+        ["String", "'paid'"]
+      ]
+    },
+    {
+      "name": "string keeps case, spaces and keywords",
+      "class": "tokens_literals",
+      "sql": "'Select FROM  x'",
+      "tokens_want": [
+        ["String", "'Select FROM  x'"]
+      ]
+    },
+    {
+      "name": "string with escaped quote",
+      "class": "tokens_literals",
+      "sql": "'it''s here'",
+      "tokens_want": [
+        ["String", "'it''s here'"]
+      ]
+    },
+    {
+      "name": "empty string",
+      "class": "tokens_literals",
+      "sql": "''",
+      "tokens_want": [
+        ["String", "''"]
+      ]
+    },
+    {
+      "name": "comparison operators",
+      "class": "tokens_operators",
+      "sql": "= <> != < > <= >=",
+      "tokens_want": [
+        ["Operator", "="],
+        ["Operator", "<>"],
+        ["Operator", "!="],
+        ["Operator", "<"],
+        ["Operator", ">"],
+        ["Operator", "<="],
+        ["Operator", ">="]
+      ]
+    },
+    {
+      "name": "arithmetic operators",
+      "class": "tokens_operators",
+      "sql": "a + b - c / d % e",
+      "tokens_want": [
+        ["Identifier", "a"],
+        ["Operator", "+"],
+        ["Identifier", "b"],
+        ["Operator", "-"],
+        ["Identifier", "c"],
+        ["Operator", "/"],
+        ["Identifier", "d"],
+        ["Operator", "%"],
+        ["Identifier", "e"]
+      ]
+    },
+    {
+      "name": "no spaces around operators",
+      "class": "tokens_operators",
+      "sql": "id>=10",
+      "tokens_want": [
+        ["Identifier", "id"],
+        ["Operator", ">="],
+        ["Number", "10"]
+      ]
+    },
+    {
+      "name": "star is a Star as a wildcard and an Operator after a value",
+      "class": "tokens_operators",
+      "sql": "select *, count(*), price*qty, (a)*2, 3*-1",
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Star", "*"],
+        ["Comma", ","],
+        ["Identifier", "count"],
+        ["LParen", "("],
+        ["Star", "*"],
+        ["RParen", ")"],
+        ["Comma", ","],
+        ["Identifier", "price"],
+        ["Operator", "*"],
+        ["Identifier", "qty"],
+        ["Comma", ","],
+        ["LParen", "("],
+        ["Identifier", "a"],
+        ["RParen", ")"],
+        ["Operator", "*"],
+        ["Number", "2"],
+        ["Comma", ","],
+        ["Number", "3"],
+        ["Operator", "*"],
+        ["Operator", "-"],
+        ["Number", "1"]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,321 @@
+{
+  "pattern": "joins",
+  "classes": [
+    {"id": "join_types", "desc": "INNER / LEFT / RIGHT / FULL / CROSS (OUTER) JOIN"},
+    {"id": "join_conditions", "desc": "ON and USING, AND / OR inside ON"},
+    {"id": "join_multiple", "desc": "several JOINs and comma-separated FROM tables"},
+    {"id": "join_subquery", "desc": "JOIN to a subquery or a CTE"},
+    {"id": "tokens_joins", "desc": "tokenizer: JOIN phrases merge into one token; LEFT / RIGHT functions stay identifiers"}
+  ],
+  "cases": [
+    {
+      "name": "any JOIN type with ON, multi-word LEFT OUTER JOIN",
+      "class": "join_types",
+      "sql": "select * from users u left outer join orders o on o.user_id = u.id",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u",
+        "       LEFT OUTER JOIN orders o",
+        "         ON o.user_id = u.id"
+      ]
+    },
+    {
+      "name": "JOIN without ON or USING",
+      "class": "join_types",
+      "sql": "select * from sizes s cross join colors c",
+      "format_want": [
+        "SELECT *",
+        "FROM   sizes s",
+        "       CROSS JOIN colors c"
+      ]
+    },
+    {
+      "name": "USING instead of ON",
+      "class": "join_types",
+      "sql": "select * from users u join orders o using (user_id)",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         USING (user_id)"
+      ]
+    },
+    {
+      "name": "comma-joined tables one per line",
+      "class": "join_types",
+      "sql": "select * from users u, orders o where o.user_id = u.id",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u,",
+        "       orders o",
+        "WHERE  o.user_id = u.id"
+      ]
+    },
+    {
+      "name": "comma-joined table after JOIN goes under FROM",
+      "class": "join_types",
+      "sql": "select * from t join b on a.id=b.id, c",
+      "format_want": [
+        "SELECT *",
+        "FROM   t",
+        "       JOIN b",
+        "         ON a.id = b.id,",
+        "       c"
+      ]
+    },
+    {
+      "name": "only listed JOIN phrases merge, an alias named left stays",
+      "class": "join_types",
+      "sql": "select * from t left left join b on t.id = b.id",
+      "format_want": [
+        "SELECT *",
+        "FROM   t left",
+        "       LEFT JOIN b",
+        "         ON t.id = b.id"
+      ]
+    },
+    {
+      "name": "ON with AND",
+      "class": "join_conditions",
+      "sql": "select * from users u join orders o on o.user_id = u.id and o.status = 'paid'",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id",
+        "            AND o.status = 'paid'"
+      ]
+    },
+    {
+      "name": "ON with AND and OR group",
+      "class": "join_conditions",
+      "sql": "select * from users u join orders o on o.user_id = u.id and (o.status = 'paid' or o.status = 'shipped')",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id",
+        "            AND (o.status = 'paid' OR o.status = 'shipped')"
+      ]
+    },
+    {
+      "name": "ON with BETWEEN",
+      "class": "join_conditions",
+      "sql": "select * from events e join periods p on e.ts between p.start_ts and p.end_ts",
+      "format_want": [
+        "SELECT *",
+        "FROM   events e",
+        "       JOIN periods p",
+        "         ON e.ts BETWEEN p.start_ts AND p.end_ts"
+      ]
+    },
+    {
+      "name": "ON with AND then WHERE with AND",
+      "class": "join_conditions",
+      "sql": "select * from users u join orders o on o.user_id = u.id and o.amount > 0 where u.active = 1 and o.status = 'paid'",
+      "format_want": [
+        "SELECT *",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id",
+        "            AND o.amount > 0",
+        "WHERE  u.active = 1",
+        "       AND o.status = 'paid'"
+      ]
+    },
+    {
+      "name": "three tables",
+      "class": "join_multiple",
+      "sql": "select u.id, p.amount from users u join orders o on o.user_id = u.id left join payments p on p.order_id = o.id",
+      "format_want": [
+        "SELECT u.id,",
+        "       p.amount",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id",
+        "       LEFT JOIN payments p",
+        "         ON p.order_id = o.id"
+      ]
+    },
+    {
+      "name": "self join",
+      "class": "join_multiple",
+      "sql": "select e.first_name, m.first_name as manager from employees e left join employees m on m.id = e.manager_id",
+      "format_want": [
+        "SELECT e.first_name,",
+        "       m.first_name AS manager",
+        "FROM   employees e",
+        "       LEFT JOIN employees m",
+        "         ON m.id = e.manager_id"
+      ]
+    },
+    {
+      "name": "all clauses",
+      "class": "join_multiple",
+      "sql": "select u.country, count(*) as n from users u join orders o on o.user_id = u.id where o.amount > 10 group by u.country having count(*) > 5 order by n desc limit 3",
+      "format_want": [
+        "SELECT u.country,",
+        "       count(*) AS n",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id",
+        "WHERE  o.amount > 10",
+        "GROUP BY u.country",
+        "HAVING count(*) > 5",
+        "ORDER BY n DESC",
+        "LIMIT  3"
+      ]
+    },
+    {
+      "name": "input whitespace and line breaks are ignored",
+      "class": "join_multiple",
+      "sql": "SELECT u.id, o.amount\nFROM users u\nLEFT JOIN orders o ON o.user_id = u.id\nWHERE u.active = 1",
+      "format_want": [
+        "SELECT u.id,",
+        "       o.amount",
+        "FROM   users u",
+        "       LEFT JOIN orders o",
+        "         ON o.user_id = u.id",
+        "WHERE  u.active = 1"
+      ]
+    },
+    {
+      "name": "JOIN a derived table",
+      "class": "join_subquery",
+      "sql": "select u.id, t.total from users u join (select user_id, sum(amount) as total from orders group by user_id) t on t.user_id = u.id",
+      "format_want": [
+        "SELECT u.id,",
+        "       t.total",
+        "FROM   users u",
+        "       JOIN (SELECT user_id,",
+        "                    sum(amount) AS total",
+        "             FROM   orders",
+        "             GROUP BY user_id) t",
+        "         ON t.user_id = u.id"
+      ]
+    },
+    {
+      "name": "JOIN inside a subquery",
+      "class": "join_subquery",
+      "sql": "select * from users where id in (select o.user_id from orders o join payments p on p.order_id = o.id)",
+      "format_want": [
+        "SELECT *",
+        "FROM   users",
+        "WHERE  id IN (SELECT o.user_id",
+        "              FROM   orders o",
+        "                     JOIN payments p",
+        "                       ON p.order_id = o.id)"
+      ]
+    },
+    {
+      "name": "JOIN a CTE",
+      "class": "join_subquery",
+      "sql": "with paid as (select order_id from payments where status = 'ok') select o.id from orders o join paid p on p.order_id = o.id",
+      "format_want": [
+        "WITH paid AS (SELECT order_id",
+        "              FROM   payments",
+        "              WHERE  status = 'ok')",
+        "SELECT o.id",
+        "FROM   orders o",
+        "       JOIN paid p",
+        "         ON p.order_id = o.id"
+      ]
+    },
+    {
+      "name": "JOIN alone",
+      "class": "tokens_joins",
+      "sql": "join t on a = b",
+      "tokens_want": [
+        ["Keyword", "JOIN"],
+        ["Identifier", "t"],
+        ["Keyword", "ON"],
+        ["Identifier", "a"],
+        ["Operator", "="],
+        ["Identifier", "b"]
+      ]
+    },
+    {
+      "name": "JOIN types are one token each",
+      "class": "tokens_joins",
+      "sql": "inner join a left join b right join c full join d cross join e",
+      "tokens_want": [
+        ["Keyword", "INNER JOIN"],
+        ["Identifier", "a"],
+        ["Keyword", "LEFT JOIN"],
+        ["Identifier", "b"],
+        ["Keyword", "RIGHT JOIN"],
+        ["Identifier", "c"],
+        ["Keyword", "FULL JOIN"],
+        ["Identifier", "d"],
+        ["Keyword", "CROSS JOIN"],
+        ["Identifier", "e"]
+      ]
+    },
+    {
+      "name": "OUTER JOIN types are one token each",
+      "class": "tokens_joins",
+      "sql": "Left Outer Join a full outer join b",
+      "tokens_want": [
+        ["Keyword", "LEFT OUTER JOIN"],
+        ["Identifier", "a"],
+        ["Keyword", "FULL OUTER JOIN"],
+        ["Identifier", "b"]
+      ]
+    },
+    {
+      "name": "JOIN type across a newline",
+      "class": "tokens_joins",
+      "sql": "left\n  join a",
+      "tokens_want": [
+        ["Keyword", "LEFT JOIN"],
+        ["Identifier", "a"]
+      ]
+    },
+    {
+      "name": "only listed JOIN phrases merge",
+      "class": "tokens_joins",
+      "sql": "left outer inner join a left left join b",
+      "tokens_want": [
+        ["Identifier", "left"],
+        ["Identifier", "outer"],
+        ["Keyword", "INNER JOIN"],
+        ["Identifier", "a"],
+        ["Identifier", "left"],
+        ["Keyword", "LEFT JOIN"],
+        ["Identifier", "b"]
+      ]
+    },
+    {
+      "name": "USING",
+      "class": "tokens_joins",
+      "sql": "join t using (id)",
+      "tokens_want": [
+        ["Keyword", "JOIN"],
+        ["Identifier", "t"],
+        ["Keyword", "USING"],
+        ["LParen", "("],
+        ["Identifier", "id"],
+        ["RParen", ")"]
+      ]
+    },
+    {
+      "name": "LEFT and RIGHT functions stay identifiers",
+      "class": "tokens_joins",
+      "sql": "left(email, 3) right(email, 2)",
+      "tokens_want": [
+        ["Identifier", "left"],
+        ["LParen", "("],
+        ["Identifier", "email"],
+        ["Comma", ","],
+        ["Number", "3"],
+        ["RParen", ")"],
+        ["Identifier", "right"],
+        ["LParen", "("],
+        ["Identifier", "email"],
+        ["Comma", ","],
+        ["Number", "2"],
+        ["RParen", ")"]
+      ]
+    }
+  ]
+}
