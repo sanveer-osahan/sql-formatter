@@ -54,8 +54,12 @@ var keywords = map[string]bool{
 	"LIKE": true, "BETWEEN": true, "ASC": true, "DESC": true, "EXISTS": true,
 }
 
-// phrases are the multi-word keywords from the clauses table, such as
-// GROUP BY and LEFT OUTER JOIN. Their words become a single keyword
+// plainPhrases are multi-word keywords that are not clauses, so they
+// stay on the current line, such as DEFAULT VALUES after INSERT INTO t.
+var plainPhrases = []string{"DEFAULT VALUES"}
+
+// phrases are the multi-word keywords from the clauses table and
+// plainPhrases, such as GROUP BY and LEFT OUTER JOIN. Their words become a single keyword
 // only in this order; a word alone is a keyword only if it is in keywords.
 var phrases [][]string
 
@@ -67,6 +71,9 @@ func init() {
 		} else {
 			phrases = append(phrases, words)
 		}
+	}
+	for _, p := range plainPhrases {
+		phrases = append(phrases, strings.Fields(p))
 	}
 }
 

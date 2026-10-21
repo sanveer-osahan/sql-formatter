@@ -1,0 +1,92 @@
+{
+  "pattern": "insert_queries",
+  "classes": [
+    {"id": "insert_values", "desc": "INSERT INTO table (columns) VALUES with one row tuple"},
+    {"id": "insert_no_columns", "desc": "INSERT INTO table VALUES without a column list"},
+    {"id": "insert_multi_row", "desc": "VALUES with several row tuples, one per line"},
+    {"id": "insert_select", "desc": "INSERT INTO ... SELECT: query body in normal layout"},
+    {"id": "insert_cte", "desc": "WITH ... INSERT INTO: CTEs first, then INSERT INTO at column 0"},
+    {"id": "tokens_insert", "desc": "tokenizer: INSERT INTO phrase and VALUES keyword"}
+  ],
+  "cases": [
+    {
+      "name": "single row with columns",
+      "class": "insert_values",
+      "sql": "insert   into shop.users(id,name,email,score) values(1,'Ann',NULL,-3)",
+      "format_want": [
+        "INSERT INTO shop.users (id, name, email, score)",
+        "VALUES (1, 'Ann', NULL, -3)"
+      ]
+    },
+    {
+      "name": "no column list",
+      "class": "insert_no_columns",
+      "sql": "INSERT INTO logs VALUES (now(), 'start', 1 + 2)",
+      "format_want": [
+        "INSERT INTO logs",
+        "VALUES (now(), 'start', 1 + 2)"
+      ]
+    },
+    {
+      "name": "multi row",
+      "class": "insert_multi_row",
+      "sql": "insert into users (id, name) values (1, 'ann'), (2, 'bob'),\n(3, upper('cy'))",
+      "format_want": [
+        "INSERT INTO users (id, name)",
+        "VALUES (1, 'ann'),",
+        "       (2, 'bob'),",
+        "       (3, upper('cy'))"
+      ]
+    },
+    {
+      "name": "insert select",
+      "class": "insert_select",
+      "sql": "insert into archive (id, amount) select o.id, o.amount from orders o join users u on u.id = o.user_id where o.status = 'done' and o.amount > 0",
+      "format_want": [
+        "INSERT INTO archive (id, amount)",
+        "SELECT o.id,",
+        "       o.amount",
+        "FROM   orders o",
+        "       JOIN users u",
+        "         ON u.id = o.user_id",
+        "WHERE  o.status = 'done'",
+        "       AND o.amount > 0"
+      ]
+    },
+    {
+      "name": "cte insert",
+      "class": "insert_cte",
+      "sql": "with paid as (select id, amount from orders where status = 'paid') insert into paid_orders (id, amount) select id, amount from paid",
+      "format_want": [
+        "WITH paid AS (SELECT id,",
+        "                     amount",
+        "              FROM   orders",
+        "              WHERE  status = 'paid')",
+        "INSERT INTO paid_orders (id, amount)",
+        "SELECT id,",
+        "       amount",
+        "FROM   paid"
+      ]
+    },
+    {
+      "name": "insert tokens",
+      "class": "tokens_insert",
+      "sql": "insert\n  into t (a) values (1)",
+      "tokens_want": [
+        ["Keyword", "INSERT INTO"],
+        ["Identifier", "t"],
+        ["LParen", "("],
+        ["Identifier", "a"],
+        ["RParen", ")"],
+        ["Keyword", "VALUES"],
+        ["LParen", "("],
+        ["Number", "1"],
+        ["RParen", ")"]
+      ],
+      "format_want": [
+        "INSERT INTO t (a)",
+        "VALUES (1)"
+      ]
+    }
+  ]
+}
