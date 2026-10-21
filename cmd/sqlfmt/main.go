@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sanveerosahan/sql-formatter/internal/formatter"
+	"github.com/sanveer-osahan/sql-formatter/internal/formatter"
 )
 
 func main() {
