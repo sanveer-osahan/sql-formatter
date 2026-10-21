@@ -25,6 +25,8 @@ go run ./cmd/sqlfmt --sql "SELECT * FROM users"
 `INSERT INTO ... VALUES` (one or many rows), `INSERT ... SELECT` and
 `WITH ... INSERT`.
 
+`UPDATE` queries with multi-column `SET`, `FROM`, `WHERE`, subqueries and CTEs.
+
 - [internal/formatter/testdata/patterns/MANIFEST.md](internal/formatter/testdata/patterns/MANIFEST.md)
   lists each supported pattern, its test dataset and what is not covered yet.
 - [STYLE.md](STYLE.md) holds the layout rules.

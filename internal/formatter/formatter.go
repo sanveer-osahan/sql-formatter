@@ -21,6 +21,9 @@ type clause struct {
 	nested      bool   // part of the clause above it, such as JOIN in FROM; commas follow that clause
 	join        bool   // ON and USING can follow it
 	afterJoin   bool   // a clause only after a join, otherwise a plain keyword
+	follows     string // a clause only straight after this clause, otherwise a plain keyword
+	prefix      bool   // comes before the statement, such as WITH
+	startsStmt  bool   // a clause only at the start of a statement or after a prefix clause
 	startsQuery bool   // a "(" before it opens a subquery
 	columnLists bool   // a "(" after a name opens a column list, not a function call
 }
@@ -28,8 +31,10 @@ type clause struct {
 // clauses is the layout of each clause. A multi-word keyword is one
 // token, see phrases. To add a clause, add a row here.
 var clauses = []clause{
-	{keyword: "WITH", commas: true, startsQuery: true, columnLists: true},
+	{keyword: "WITH", commas: true, prefix: true, startsQuery: true, columnLists: true},
 	{keyword: "SELECT", width: clauseWidth, commas: true, startsQuery: true},
+	{keyword: "UPDATE", width: clauseWidth, startsStmt: true},
+	{keyword: "SET", width: clauseWidth, commas: true, follows: "UPDATE"},
 	{keyword: "FROM", width: clauseWidth, commas: true},
 	{keyword: "WHERE", width: clauseWidth, conditions: true},
 	{keyword: "GROUP BY", width: clauseWidth},
@@ -67,6 +72,20 @@ func clauseOf(t Token) *clause {
 		return nil
 	}
 	return clauseByKeyword[t.Value]
+}
+
+// appliesAfter reports whether c starts a clause when cur is the current
+// clause (nil if none yet); first is true for the first token of a query.
+func (c *clause) appliesAfter(cur *clause, first bool) bool {
+	switch {
+	case c.afterJoin:
+		return cur != nil && cur.join
+	case c.follows != "":
+		return cur != nil && cur.keyword == c.follows
+	case c.startsStmt:
+		return first || cur != nil && cur.prefix
+	}
+	return true
 }
 
 // Format tokenizes the SQL and lays it out one clause per line, as
@@ -146,7 +165,7 @@ func formatQuery(w *writer, tokens []Token, base int) error {
 		t := tokens[i]
 		c := clauseOf(t)
 		switch {
-		case c != nil && depth == 0 && (!c.afterJoin || cur != nil && cur.join):
+		case c != nil && depth == 0 && c.appliesAfter(cur, i == 0):
 			if i > 0 {
 				w.newline(base + c.indent)
 			}

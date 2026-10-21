@@ -1,0 +1,193 @@
+{
+  "pattern": "update_queries",
+  "classes": [
+    {
+      "id": "update_single_set",
+      "desc": "UPDATE with one SET assignment and no other clause"
+    },
+    {
+      "id": "update_multi_set",
+      "desc": "SET with several assignments, one per line under the first"
+    },
+    {
+      "id": "update_where",
+      "desc": "UPDATE .. SET .. WHERE with top-level AND / OR, qualified table name and alias"
+    },
+    {
+      "id": "update_set_expressions",
+      "desc": "SET values with arithmetic, nested function calls (inner commas stay), NULL and literals"
+    },
+    {
+      "id": "update_subquery",
+      "desc": "subquery as a SET value (comma after its ')') and in WHERE"
+    },
+    {
+      "id": "update_from",
+      "desc": "PostgreSQL UPDATE .. SET .. FROM .. WHERE"
+    },
+    {
+      "id": "update_with_cte",
+      "desc": "WITH CTE before UPDATE, UPDATE starts at column 0"
+    },
+    {
+      "id": "tokens_update",
+      "desc": "tokenizer: UPDATE and SET are keywords"
+    }
+  ],
+  "cases": [
+    {
+      "name": "single assignment",
+      "class": "update_single_set",
+      "sql": "update users set active = 0",
+      "format_want": [
+        "UPDATE users",
+        "SET    active = 0"
+      ]
+    },
+    {
+      "name": "three assignments",
+      "class": "update_multi_set",
+      "sql": "UPDATE users SET name='Ann', email = 'a@x.io',age=30 WHERE id = 7",
+      "format_want": [
+        "UPDATE users",
+        "SET    name = 'Ann',",
+        "       email = 'a@x.io',",
+        "       age = 30",
+        "WHERE  id = 7"
+      ]
+    },
+    {
+      "name": "where with or and alias",
+      "class": "update_where",
+      "sql": "update db.users u set u.active = 0 where u.last_login < '2025-01-01' or u.banned = 1",
+      "format_want": [
+        "UPDATE db.users u",
+        "SET    u.active = 0",
+        "WHERE  u.last_login < '2025-01-01'",
+        "       OR u.banned = 1"
+      ]
+    },
+    {
+      "name": "expressions in values",
+      "class": "update_set_expressions",
+      "sql": "update accounts set balance = balance - 10 * rate, note = upper(left(note,3)), closed_at = null where id in (1,2,3)",
+      "format_want": [
+        "UPDATE accounts",
+        "SET    balance = balance - 10 * rate,",
+        "       note = upper(left(note, 3)),",
+        "       closed_at = NULL",
+        "WHERE  id IN (1, 2, 3)"
+      ]
+    },
+    {
+      "name": "subquery value and where",
+      "class": "update_subquery",
+      "sql": "update users set order_count = (select count(*) from orders o where o.user_id = users.id), updated_at = now() where id in (select user_id from orders)",
+      "format_want": [
+        "UPDATE users",
+        "SET    order_count = (SELECT count(*)",
+        "                      FROM   orders o",
+        "                      WHERE  o.user_id = users.id),",
+        "       updated_at = now()",
+        "WHERE  id IN (SELECT user_id",
+        "              FROM   orders)"
+      ]
+    },
+    {
+      "name": "update from",
+      "class": "update_from",
+      "sql": "update orders set status = 'vip' from users u where orders.user_id = u.id and u.tier = 'gold'",
+      "format_want": [
+        "UPDATE orders",
+        "SET    status = 'vip'",
+        "FROM   users u",
+        "WHERE  orders.user_id = u.id",
+        "       AND u.tier = 'gold'"
+      ]
+    },
+    {
+      "name": "cte before update",
+      "class": "update_with_cte",
+      "sql": "with vip as (select user_id from orders group by user_id having sum(amount) > 1000) update users set tier = 'vip' where id in (select user_id from vip)",
+      "format_want": [
+        "WITH vip AS (SELECT user_id",
+        "             FROM   orders",
+        "             GROUP BY user_id",
+        "             HAVING sum(amount) > 1000)",
+        "UPDATE users",
+        "SET    tier = 'vip'",
+        "WHERE  id IN (SELECT user_id",
+        "              FROM   vip)"
+      ]
+    },
+    {
+      "name": "update tokens",
+      "class": "tokens_update",
+      "sql": "Update t set a = 1, b = 'x' where c = 2",
+      "format_want": [
+        "UPDATE t",
+        "SET    a = 1,",
+        "       b = 'x'",
+        "WHERE  c = 2"
+      ],
+      "tokens_want": [
+        [
+          "Keyword",
+          "UPDATE"
+        ],
+        [
+          "Identifier",
+          "t"
+        ],
+        [
+          "Keyword",
+          "SET"
+        ],
+        [
+          "Identifier",
+          "a"
+        ],
+        [
+          "Operator",
+          "="
+        ],
+        [
+          "Number",
+          "1"
+        ],
+        [
+          "Comma",
+          ","
+        ],
+        [
+          "Identifier",
+          "b"
+        ],
+        [
+          "Operator",
+          "="
+        ],
+        [
+          "String",
+          "'x'"
+        ],
+        [
+          "Keyword",
+          "WHERE"
+        ],
+        [
+          "Identifier",
+          "c"
+        ],
+        [
+          "Operator",
+          "="
+        ],
+        [
+          "Number",
+          "2"
+        ]
+      ]
+    }
+  ]
+}

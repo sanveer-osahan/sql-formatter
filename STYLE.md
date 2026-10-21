@@ -92,3 +92,27 @@ INSERT INTO users (id, name)
 VALUES (1, 'ann'),
        (2, 'bob')
 ```
+
+## UPDATE
+
+- `UPDATE` and `SET` are clause keywords. Each starts a line, padded to
+  7 characters like other clauses: `UPDATE t`, `SET    a = 1`.
+- The table name, with an optional qualifier and alias, stays on the
+  `UPDATE` line.
+- In `SET`, each assignment after a top-level comma goes on its own line,
+  lined up under the first assignment, like `SELECT` columns. Commas
+  inside parentheses, such as in `coalesce(a, 0)`, stay on the line.
+- A subquery as a `SET` value follows the subquery rules; a comma after
+  its `)` stays on the subquery's last line.
+- `FROM` (as in PostgreSQL `UPDATE .. FROM ..`) and `WHERE` after `SET`
+  follow their usual rules.
+- A `WITH` before `UPDATE` follows the CTE rules; `UPDATE` starts a new
+  line at column 0.
+
+```sql
+UPDATE users u
+SET    name = 'Ann',
+       score = coalesce(score, 0) + 1
+WHERE  u.id = 7
+       AND active = 1
+```
