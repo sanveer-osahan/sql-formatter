@@ -42,6 +42,8 @@ var clauses = []clause{
 	{keyword: "ORDER BY", width: clauseWidth},
 	{keyword: "LIMIT", width: clauseWidth},
 	{keyword: "OFFSET", width: clauseWidth},
+	{keyword: "INSERT INTO", columnLists: true},
+	{keyword: "VALUES", width: clauseWidth, commas: true},
 	{keyword: "JOIN", indent: clauseWidth, nested: true, join: true},
 	{keyword: "INNER JOIN", indent: clauseWidth, nested: true, join: true},
 	{keyword: "LEFT JOIN", indent: clauseWidth, nested: true, join: true},
@@ -208,7 +210,7 @@ func formatQuery(w *writer, tokens []Token, base int) error {
 		default:
 			unary := isUnarySign(prev, t, lineStart)
 			space := needsSpace(prev, t) ||
-				cur != nil && cur.columnLists && depth == 0 && t.Type == LParen // CTE column list: totals (a, b)
+				cur != nil && cur.columnLists && depth == 0 && t.Type == LParen // column list: totals (a, b), INSERT INTO t (a, b)
 			if !lineStart && !prevUnary && space {
 				w.write(" ")
 			}

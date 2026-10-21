@@ -22,6 +22,9 @@ go run ./cmd/sqlfmt --sql "SELECT * FROM users"
 `SELECT` queries with `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`,
 `OFFSET`, joins, subqueries and CTEs.
 
+`INSERT INTO ... VALUES` (one or many rows), `INSERT ... SELECT` and
+`WITH ... INSERT`.
+
 `UPDATE` queries with multi-column `SET`, `FROM`, `WHERE`, subqueries and CTEs.
 
 - [internal/formatter/testdata/patterns/MANIFEST.md](internal/formatter/testdata/patterns/MANIFEST.md)

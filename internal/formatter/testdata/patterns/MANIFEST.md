@@ -16,6 +16,7 @@ Error cases (invalid input) are not in the datasets; they stay inline in
 | subquery | `subquery.json` | subquery, tokens_subqueries | Subqueries |
 | cte | `cte.json` | cte, tokens_cte | CTEs |
 | joins | `joins.json` | join_types, join_conditions, join_multiple, join_subquery, tokens_joins | JOINs |
+| insert_queries | `insert_queries.json` | insert_values, insert_no_columns, insert_multi_row, insert_select, insert_cte, tokens_insert | INSERT |
 | update_queries | `update_queries.json` | update_single_set, update_multi_set, update_where, update_set_expressions, update_subquery, update_from, update_with_cte, tokens_update | UPDATE |
 
 ## Known uncovered
@@ -23,6 +24,6 @@ Error cases (invalid input) are not in the datasets; they stay inline in
 - CASE expressions
 - UNION / INTERSECT / EXCEPT
 - Window functions (`OVER`)
-- DML / DDL (`INSERT`, `DELETE`, `CREATE`)
+- DML / DDL (`DELETE`, `CREATE`)
 - Comments (`--`, `/* */`): rejected with an error
 - Quoted identifiers (`"name"`): rejected with an error

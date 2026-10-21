@@ -71,6 +71,28 @@ The layout of each clause keyword is one row of the `clauses` table in
   also after a `JOIN`.
 - `LEFT` and `RIGHT` followed by `(` are function calls, not joins.
 
+## INSERT
+
+- `INSERT INTO` is one keyword token, also across whitespace and newlines.
+  It starts a line and is followed by one space, like `GROUP BY`.
+- The target table and its column list stay on the `INSERT INTO` line.
+  The column list has one space before its `(`, like a CTE column list:
+  `INSERT INTO t (a, b)`. It stays on one line.
+- `VALUES` starts a line, padded to 7 like other clauses.
+- Each row tuple after a top-level comma goes on its own line, lined up
+  under the first tuple. The `,` stays at the end of the tuple's line.
+- Text inside a row tuple stays on one line (General rule).
+- `INSERT INTO ... SELECT`: the `SELECT` starts a new line at column 0 and
+  the query follows the normal layout rules.
+- `WITH ... INSERT INTO ...`: the CTEs follow the CTE rules, and
+  `INSERT INTO` starts a new line at column 0.
+
+```sql
+INSERT INTO users (id, name)
+VALUES (1, 'ann'),
+       (2, 'bob')
+```
+
 ## UPDATE
 
 - `UPDATE` and `SET` are clause keywords. Each starts a line, padded to
