@@ -1,0 +1,96 @@
+{
+  "pattern": "cte",
+  "classes": [
+    {"id": "cte", "desc": "WITH clauses: one or more CTEs, each body laid out as a subquery"},
+    {"id": "tokens_cte", "desc": "tokenizer: CTE with a column list"}
+  ],
+  "cases": [
+    {
+      "name": "single CTE",
+      "class": "cte",
+      "sql": "with paid_orders as (select user_id, amount from orders where status = 'paid') select user_id, sum(amount) as total from paid_orders group by user_id",
+      "format_want": [
+        "WITH paid_orders AS (SELECT user_id,",
+        "                            amount",
+        "                     FROM   orders",
+        "                     WHERE  status = 'paid')",
+        "SELECT user_id,",
+        "       sum(amount) AS total",
+        "FROM   paid_orders",
+        "GROUP BY user_id"
+      ]
+    },
+    {
+      "name": "two CTEs, second uses first",
+      "class": "cte",
+      "sql": "with daily as (select created_at, sum(amount) as total from orders group by created_at), ranked as (select created_at, total from daily where total > 100) select * from ranked order by total desc limit 10",
+      "format_want": [
+        "WITH daily AS (SELECT created_at,",
+        "                      sum(amount) AS total",
+        "               FROM   orders",
+        "               GROUP BY created_at),",
+        "     ranked AS (SELECT created_at,",
+        "                       total",
+        "                FROM   daily",
+        "                WHERE  total > 100)",
+        "SELECT *",
+        "FROM   ranked",
+        "ORDER BY total DESC",
+        "LIMIT  10"
+      ]
+    },
+    {
+      "name": "CTE with column list",
+      "class": "cte",
+      "sql": "with totals (user_id, total) as (select user_id, sum(amount) from orders group by user_id) select * from totals",
+      "format_want": [
+        "WITH totals (user_id, total) AS (SELECT user_id,",
+        "                                        sum(amount)",
+        "                                 FROM   orders",
+        "                                 GROUP BY user_id)",
+        "SELECT *",
+        "FROM   totals"
+      ]
+    },
+    {
+      "name": "CTEs with subquery in main query",
+      "class": "cte",
+      "sql": "with active_users as (select id from users where active = 1), user_totals as (select user_id, sum(amount) as total from orders group by user_id) select id from active_users where id in (select user_id from user_totals where total > 1000)",
+      "format_want": [
+        "WITH active_users AS (SELECT id",
+        "                      FROM   users",
+        "                      WHERE  active = 1),",
+        "     user_totals AS (SELECT user_id,",
+        "                            sum(amount) AS total",
+        "                     FROM   orders",
+        "                     GROUP BY user_id)",
+        "SELECT id",
+        "FROM   active_users",
+        "WHERE  id IN (SELECT user_id",
+        "              FROM   user_totals",
+        "              WHERE  total > 1000)"
+      ]
+    },
+    {
+      "name": "CTE with column list (tokenizer)",
+      "class": "tokens_cte",
+      "sql": "with t (a, b) as (select 1, 2)",
+      "tokens_want": [
+        ["Keyword", "WITH"],
+        ["Identifier", "t"],
+        ["LParen", "("],
+        ["Identifier", "a"],
+        ["Comma", ","],
+        ["Identifier", "b"],
+        ["RParen", ")"],
+        ["Keyword", "AS"],
+        ["LParen", "("],
+        ["Keyword", "SELECT"],
+        ["Number", "1"],
+        ["Comma", ","],
+        ["Number", "2"],
+        ["RParen", ")"]
+      ]
+    }
+  ]
+}

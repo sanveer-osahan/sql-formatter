@@ -1,0 +1,381 @@
+{
+  "pattern": "select_basics",
+  "classes": [
+    {"id": "star_and_where", "desc": "SELECT * with and without a simple WHERE"},
+    {"id": "columns_projection", "desc": "column lists, aliases, DISTINCT, qualified names, one column per line"},
+    {"id": "agg_functions", "desc": "aggregate and other function calls in the SELECT list"},
+    {"id": "tokens_basic", "desc": "tokenizer: empty input, whitespace and newlines between tokens"},
+    {"id": "tokens_keywords", "desc": "tokenizer: keywords become upper case; multi-word keywords are one token"},
+    {"id": "tokens_identifiers", "desc": "tokenizer: identifiers keep case; qualified names and alias.* are one token"},
+    {"id": "tokens_functions", "desc": "tokenizer: function calls, nested calls, count(DISTINCT ..), IN lists"}
+  ],
+  "cases": [
+    {
+      "name": "star without where",
+      "class": "star_and_where",
+      "sql": "select * from table_name",
+      "format_want": [
+        "SELECT *",
+        "FROM   table_name"
+      ]
+    },
+    {
+      "name": "star with where",
+      "class": "star_and_where",
+      "sql": "SELECT * FROM table_name WHERE id = 1",
+      "format_want": [
+        "SELECT *",
+        "FROM   table_name",
+        "WHERE  id = 1"
+      ],
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Star", "*"],
+        ["Keyword", "FROM"],
+        ["Identifier", "table_name"],
+        ["Keyword", "WHERE"],
+        ["Identifier", "id"],
+        ["Operator", "="],
+        ["Number", "1"]
+      ]
+    },
+    {
+      "name": "fully qualified table",
+      "class": "star_and_where",
+      "sql": "select * from db.sales.orders where status = 'open'",
+      "format_want": [
+        "SELECT *",
+        "FROM   db.sales.orders",
+        "WHERE  status = 'open'"
+      ]
+    },
+    {
+      "name": "qualified star alias.*",
+      "class": "star_and_where",
+      "sql": "select u.*, o.id from users u join orders o on o.user_id = u.id",
+      "format_want": [
+        "SELECT u.*,",
+        "       o.id",
+        "FROM   users u",
+        "       JOIN orders o",
+        "         ON o.user_id = u.id"
+      ]
+    },
+    {
+      "name": "single column",
+      "class": "columns_projection",
+      "sql": "select id from users",
+      "format_want": [
+        "SELECT id",
+        "FROM   users"
+      ]
+    },
+    {
+      "name": "two columns",
+      "class": "columns_projection",
+      "sql": "SELECT col1, col2 FROM table_name WHERE id = 1",
+      "format_want": [
+        "SELECT col1,",
+        "       col2",
+        "FROM   table_name",
+        "WHERE  id = 1"
+      ]
+    },
+    {
+      "name": "aliases with and without AS",
+      "class": "columns_projection",
+      "sql": "select id, first_name as fname, last_name lname from users",
+      "format_want": [
+        "SELECT id,",
+        "       first_name AS fname,",
+        "       last_name lname",
+        "FROM   users"
+      ]
+    },
+    {
+      "name": "qualified columns and table alias",
+      "class": "columns_projection",
+      "sql": "select u.id,u.email from users u",
+      "format_want": [
+        "SELECT u.id,",
+        "       u.email",
+        "FROM   users u"
+      ]
+    },
+    {
+      "name": "distinct",
+      "class": "columns_projection",
+      "sql": "select distinct country from users",
+      "format_want": [
+        "SELECT DISTINCT country",
+        "FROM   users"
+      ]
+    },
+    {
+      "name": "arithmetic expression",
+      "class": "columns_projection",
+      "sql": "select price*quantity as total from order_items",
+      "format_want": [
+        "SELECT price * quantity AS total",
+        "FROM   order_items"
+      ]
+    },
+    {
+      "name": "count star",
+      "class": "agg_functions",
+      "sql": "select count(*) from users",
+      "format_want": [
+        "SELECT count(*)",
+        "FROM   users"
+      ]
+    },
+    {
+      "name": "several aggregates with aliases",
+      "class": "agg_functions",
+      "sql": "select COUNT(*) as total, SUM(amount) as revenue, avg(amount), min(created_at), max(created_at) from orders",
+      "format_want": [
+        "SELECT COUNT(*) AS total,",
+        "       SUM(amount) AS revenue,",
+        "       avg(amount),",
+        "       min(created_at),",
+        "       max(created_at)",
+        "FROM   orders"
+      ]
+    },
+    {
+      "name": "count distinct",
+      "class": "agg_functions",
+      "sql": "select count( distinct user_id ) from orders",
+      "format_want": [
+        "SELECT count(DISTINCT user_id)",
+        "FROM   orders"
+      ]
+    },
+    {
+      "name": "nested function with where",
+      "class": "agg_functions",
+      "sql": "select coalesce(sum(amount),0) as total from orders where status = 'paid'",
+      "format_want": [
+        "SELECT coalesce(sum(amount), 0) AS total",
+        "FROM   orders",
+        "WHERE  status = 'paid'"
+      ]
+    },
+    {
+      "name": "empty input",
+      "class": "tokens_basic",
+      "sql": "",
+      "tokens_want": []
+    },
+    {
+      "name": "whitespace only",
+      "class": "tokens_basic",
+      "sql": " \n\t ",
+      "tokens_want": []
+    },
+    {
+      "name": "extra whitespace and newlines",
+      "class": "tokens_basic",
+      "sql": "  select\n\t*\n  from   users  ",
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Star", "*"],
+        ["Keyword", "FROM"],
+        ["Identifier", "users"]
+      ]
+    },
+    {
+      "name": "lower and mixed case become upper case",
+      "class": "tokens_keywords",
+      "sql": "select DISTINCT a From t wHeRe b is not null",
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Keyword", "DISTINCT"],
+        ["Identifier", "a"],
+        ["Keyword", "FROM"],
+        ["Identifier", "t"],
+        ["Keyword", "WHERE"],
+        ["Identifier", "b"],
+        ["Keyword", "IS"],
+        ["Keyword", "NOT"],
+        ["Keyword", "NULL"]
+      ]
+    },
+    {
+      "name": "GROUP BY and ORDER BY are one token each",
+      "class": "tokens_keywords",
+      "sql": "group by a order by b desc",
+      "tokens_want": [
+        ["Keyword", "GROUP BY"],
+        ["Identifier", "a"],
+        ["Keyword", "ORDER BY"],
+        ["Identifier", "b"],
+        ["Keyword", "DESC"]
+      ]
+    },
+    {
+      "name": "GROUP BY across whitespace and a newline",
+      "class": "tokens_keywords",
+      "sql": "group \n  by a",
+      "tokens_want": [
+        ["Keyword", "GROUP BY"],
+        ["Identifier", "a"]
+      ]
+    },
+    {
+      "name": "condition keywords",
+      "class": "tokens_keywords",
+      "sql": "and or not in is null like between exists",
+      "tokens_want": [
+        ["Keyword", "AND"],
+        ["Keyword", "OR"],
+        ["Keyword", "NOT"],
+        ["Keyword", "IN"],
+        ["Keyword", "IS"],
+        ["Keyword", "NULL"],
+        ["Keyword", "LIKE"],
+        ["Keyword", "BETWEEN"],
+        ["Keyword", "EXISTS"]
+      ]
+    },
+    {
+      "name": "clause keywords",
+      "class": "tokens_keywords",
+      "sql": "with select from where having limit offset as asc desc",
+      "tokens_want": [
+        ["Keyword", "WITH"],
+        ["Keyword", "SELECT"],
+        ["Keyword", "FROM"],
+        ["Keyword", "WHERE"],
+        ["Keyword", "HAVING"],
+        ["Keyword", "LIMIT"],
+        ["Keyword", "OFFSET"],
+        ["Keyword", "AS"],
+        ["Keyword", "ASC"],
+        ["Keyword", "DESC"]
+      ]
+    },
+    {
+      "name": "keeps original case",
+      "class": "tokens_identifiers",
+      "sql": "select UserId, first_name from Users",
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Identifier", "UserId"],
+        ["Comma", ","],
+        ["Identifier", "first_name"],
+        ["Keyword", "FROM"],
+        ["Identifier", "Users"]
+      ]
+    },
+    {
+      "name": "underscore and digits",
+      "class": "tokens_identifiers",
+      "sql": "_tmp col2 a_1_b",
+      "tokens_want": [
+        ["Identifier", "_tmp"],
+        ["Identifier", "col2"],
+        ["Identifier", "a_1_b"]
+      ]
+    },
+    {
+      "name": "qualified star alias.* is one token",
+      "class": "tokens_identifiers",
+      "sql": "u.* db.t.*",
+      "tokens_want": [
+        ["Identifier", "u.*"],
+        ["Identifier", "db.t.*"]
+      ]
+    },
+    {
+      "name": "keyword-like column names stay identifiers",
+      "class": "tokens_identifiers",
+      "sql": "name left outer",
+      "tokens_want": [
+        ["Identifier", "name"],
+        ["Identifier", "left"],
+        ["Identifier", "outer"]
+      ]
+    },
+    {
+      "name": "qualified names are one token",
+      "class": "tokens_identifiers",
+      "sql": "select u.id from db.sales.orders",
+      "tokens_want": [
+        ["Keyword", "SELECT"],
+        ["Identifier", "u.id"],
+        ["Keyword", "FROM"],
+        ["Identifier", "db.sales.orders"]
+      ]
+    },
+    {
+      "name": "table alias with and without AS",
+      "class": "tokens_identifiers",
+      "sql": "from users u join orders as o",
+      "tokens_want": [
+        ["Keyword", "FROM"],
+        ["Identifier", "users"],
+        ["Identifier", "u"],
+        ["Keyword", "JOIN"],
+        ["Identifier", "orders"],
+        ["Keyword", "AS"],
+        ["Identifier", "o"]
+      ]
+    },
+    {
+      "name": "function call",
+      "class": "tokens_functions",
+      "sql": "sum(amount)",
+      "tokens_want": [
+        ["Identifier", "sum"],
+        ["LParen", "("],
+        ["Identifier", "amount"],
+        ["RParen", ")"]
+      ]
+    },
+    {
+      "name": "nested functions with arguments",
+      "class": "tokens_functions",
+      "sql": "coalesce(sum(amount),0)",
+      "tokens_want": [
+        ["Identifier", "coalesce"],
+        ["LParen", "("],
+        ["Identifier", "sum"],
+        ["LParen", "("],
+        ["Identifier", "amount"],
+        ["RParen", ")"],
+        ["Comma", ","],
+        ["Number", "0"],
+        ["RParen", ")"]
+      ]
+    },
+    {
+      "name": "count distinct (tokenizer)",
+      "class": "tokens_functions",
+      "sql": "count(distinct user_id)",
+      "tokens_want": [
+        ["Identifier", "count"],
+        ["LParen", "("],
+        ["Keyword", "DISTINCT"],
+        ["Identifier", "user_id"],
+        ["RParen", ")"]
+      ]
+    },
+    {
+      "name": "IN list",
+      "class": "tokens_functions",
+      "sql": "id in (1,2,3)",
+      "tokens_want": [
+        ["Identifier", "id"],
+        ["Keyword", "IN"],
+        ["LParen", "("],
+        ["Number", "1"],
+        ["Comma", ","],
+        ["Number", "2"],
+        ["Comma", ","],
+        ["Number", "3"],
+        ["RParen", ")"]
+      ]
+    }
+  ]
+}
